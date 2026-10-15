@@ -1,0 +1,13 @@
+services:
+  tijing:
+    build: .
+    container_name: tijing
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data            # 数据库、裁剪图片、OCR 结果
+      - ./import:/app/import:ro      # 放题库 PDF（试题/ 与 答案/ 两个子目录）
+    environment:
+      - TZ=Asia/Shanghai
+      # - TIJING_SECRET=请改成一串随机字符
