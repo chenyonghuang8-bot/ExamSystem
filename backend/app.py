@@ -28,6 +28,11 @@ def ex(sql, args=()):
         cur = C.execute(sql, args); C.commit(); return cur.lastrowid
 
 app = FastAPI(title="题境 API")
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(CORSMiddleware,
+    allow_origins=["capacitor://localhost", "http://localhost", "https://localhost", "ionic://localhost"],
+    allow_origin_regex=os.environ.get("TIJING_CORS_REGEX") or None,
+    allow_methods=["*"], allow_headers=["*"], allow_credentials=False)
 
 # ---------------- auth ----------------
 class Cred(BaseModel):

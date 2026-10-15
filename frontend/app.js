@@ -3,6 +3,9 @@ const $ = s => document.querySelector(s);
 const app = $('#app');
 const MODS = ['常识判断', '言语理解与表达', '判断推理', '数量关系', '资料分析'];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+let BASE = NATIVE ? (localStorage.getItem('tj_server') || '').replace(/\/+$/, '') : '';
+const abs = u => (BASE && typeof u === 'string' && u.startsWith('/')) ? BASE + u : u;
 let TOKEN = localStorage.getItem('tj_token');
 let ME = JSON.parse(localStorage.getItem('tj_user') || 'null');
 
@@ -10,7 +13,8 @@ async function api(path, opt = {}) {
   const h = opt.headers || {};
   if (TOKEN) h.Authorization = 'Bearer ' + TOKEN;
   if (opt.body && !(opt.body instanceof FormData)) { h['Content-Type'] = 'application/json'; opt.body = JSON.stringify(opt.body); }
-  const r = await fetch(path, {...opt, headers: h});
+  if (NATIVE && !BASE) { location.hash = '#/server'; throw new Error('请先设置服务器地址'); }
+  const r = await fetch(abs(path), {...opt, headers: h});
   if (r.status === 401) { logout(); throw new Error('请先登录'); }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.detail || ('请求失败 ' + r.status));
@@ -31,7 +35,7 @@ const icons = {
 };
 
 // ---------- question rendering ----------
-function imgs(list, cls = '') { return (list || []).map(u => { const w = +(new URL(u, location.href).searchParams.get('w') || 0); return `<img class="qimg ${cls}" loading="lazy" src="${u}" ${w ? `style="width:${Math.round(w * 1.55)}px"` : ''}>`; }).join(''); }
+function imgs(list, cls = '') { return (list || []).map(u => { const w = +(new URL(u, location.href).searchParams.get('w') || 0); return `<img class="qimg ${cls}" loading="lazy" src="${abs(u)}" ${w ? `style="width:${Math.round(w * 1.55)}px"` : ''}>`; }).join(''); }
 function renderQ(q, state = {}) {
   // state: {chosen:Set, reveal:{answer}, readonly}
   let h = '';
@@ -75,10 +79,11 @@ async function go() {
   const [path, qs] = hash.split('?');
   const params = new URLSearchParams(qs || '');
   const parts = path.split('/').filter(Boolean);
-  if (!TOKEN && parts[0] !== 'login' && parts[0] !== 'register') { location.hash = '#/login'; return; }
+  if (NATIVE && !BASE && parts[0] !== 'server') { location.hash = '#/server'; return; }
+  if (!TOKEN && parts[0] !== 'server' && parts[0] !== 'login' && parts[0] !== 'register') { location.hash = '#/login'; return; }
   const key = '/' + (parts[0] || '');
   const tab = {'/': 'home', '/chapters': 'chapters', '/papers': 'papers', '/wrong': 'wrong', '/me': 'me', '/admin': 'me'}[key];
-  const full = ['/practice', '/exam', '/login', '/register', '/wpractice'].includes(key);
+  const full = ['/server', '/practice', '/exam', '/login', '/register', '/wpractice'].includes(key);
   $('#tabbar').classList.toggle('hidden', full);
   document.querySelectorAll('#tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
   clearInterval(window._timer);
@@ -102,6 +107,21 @@ function authPage(isReg) {
     catch (err) { toast(err.message); }
   };
 }
+route('/server', () => {
+  app.innerHTML = `<div class="auth"><div class="brand">题境</div><p class="mut">连接你自己的题境服务器</p>
+  <div class="card" style="margin-top:24px"><h2>服务器地址</h2>
+  <form id="sf"><label>地址（如 http://192.168.1.10:8000）</label><input name="u" inputmode="url" autocapitalize="off" value="${esc(BASE || 'http://')}" required>
+  <button class="btn pri" style="width:100%;margin-top:20px">测试并保存</button></form>
+  <p class="sm mut" style="margin-top:12px">手机/iPad 需与服务器（Mac Mini）在同一 Wi‑Fi 下。</p></div></div>`;
+  $('#sf').onsubmit = async e => {
+    e.preventDefault(); let u = new FormData(e.target).get('u').trim().replace(/\/+$/, '');
+    if (!/^https?:\/\//.test(u)) u = 'http://' + u;
+    try { const r = await fetch(u + '/api/modules'); if (r.status >= 500 || r.status === 404) throw 0; }
+    catch (_) { toast('连接失败，请检查地址和网络'); return; }
+    if (u !== BASE) { TOKEN = null; localStorage.removeItem('tj_token'); localStorage.removeItem('tj_user'); }
+    BASE = u; localStorage.setItem('tj_server', u); toast('已保存'); location.hash = TOKEN ? '#/' : '#/login';
+  };
+});
 route('/login', () => authPage(false));
 route('/register', () => authPage(true));
 
@@ -249,6 +269,7 @@ function report(e) {
 route('/me', async () => {
   const me = await api('/api/me');
   app.innerHTML = `<h1>我的</h1><div class="card row between"><div><div style="font-size:20px;font-weight:600">${esc(me.username)}</div><div class="sm mut">${me.is_admin ? '管理员' : '学员'}</div></div><button class="btn" id="lo">退出登录</button></div>
+  ${NATIVE ? `<a class="card row between" style="margin-top:12px" href="#/server"><span>服务器地址</span><span class="mut sm">${esc(BASE)} ›</span></a>` : ''}
   ${me.is_admin ? '<a class="card row between" style="margin-top:12px" href="#/admin"><span>题库管理 / 导入真题</span><span class="mut">›</span></a>' : ''}
   <div class="card" style="margin-top:12px"><h2>安装到手机</h2><p class="sm mut">iPhone：Safari 打开 → 分享 → 添加到主屏幕。安卓：Chrome 菜单 → 安装应用 / 添加到主屏幕。</p></div>`;
   $('#lo').onclick = logout;
@@ -271,5 +292,5 @@ route('/admin', async () => {
   };
 });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+if (!NATIVE && 'serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 go();

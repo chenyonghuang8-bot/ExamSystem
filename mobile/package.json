@@ -1,0 +1,18 @@
+{
+  "name": "tijing-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/copy-web.js",
+    "sync": "npm run build && npx cap sync",
+    "assets": "npx @capacitor/assets generate --assetPath assets --android --ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

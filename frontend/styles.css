@@ -81,3 +81,15 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 6px;b
  h1{font-size:24px;margin:12px 0 16px}.feat{padding:16px 10px}.feat svg{width:38px;height:38px}.feat h3{font-size:16px}.stem{font-size:16px}
  .hide-m{display:none}
 }
+/* ---- iPad / tablet ---- */
+#app{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}
+.tabbar{padding-bottom:env(safe-area-inset-bottom)}
+@media (min-width:721px) and (max-width:1100px){
+  #app{max-width:900px;padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right))}
+  .btn{min-height:48px;font-size:16px}
+  .opt{min-height:56px;font-size:17px}
+  .tabbar a{min-width:88px;font-size:13px}
+  .auth{max-width:460px}
+}
+@media (min-width:1101px){ #app{max-width:1200px} .btn{min-height:46px} .opt{min-height:52px} }
+@media (pointer:coarse) and (min-width:721px){ input,select{min-height:48px;font-size:17px} }

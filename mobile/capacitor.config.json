@@ -1,0 +1,8 @@
+{
+  "appId": "com.tijing.app",
+  "appName": "题境",
+  "webDir": "www",
+  "server": { "androidScheme": "http", "cleartext": true },
+  "android": { "allowMixedContent": true },
+  "ios": { "contentInset": "never" }
+}
